@@ -1,0 +1,7 @@
+data/clean/
+*.csv
+data/initial/
+*.csv
+__pycache__/
+.env
+logs/logs.log

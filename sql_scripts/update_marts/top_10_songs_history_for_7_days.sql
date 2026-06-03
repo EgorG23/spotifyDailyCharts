@@ -4,7 +4,7 @@ WITH latest_day AS (
     FROM spotify_daily_charts
 ),
 
-top10ofLastWeek AS (
+top10ofWeek AS (
     SELECT
         track_name,
         artist_names
@@ -12,6 +12,16 @@ top10ofLastWeek AS (
     WHERE chart_date = (SELECT max_date FROM latest_day)
     ORDER BY rank
     LIMIT 10
+),
+
+deduplicated AS (
+    SELECT DISTINCT ON (track_name, artist_names, chart_date)
+        *
+    FROM spotify_daily_charts
+    ORDER BY
+        track_name,
+        artist_names,
+        chart_date
 )
 
 SELECT
@@ -20,8 +30,9 @@ SELECT
     s.chart_date,
     s.rank,
     s.streams
-FROM spotify_daily_charts s
-JOIN top10ofLastWeek t
+
+FROM deduplicated s
+JOIN top10ofWeek t
     ON s.track_name = t.track_name
     AND s.artist_names = t.artist_names
 WHERE s.chart_date >= (SELECT max_date FROM latest_day) - INTERVAL '6 days'

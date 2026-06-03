@@ -19,13 +19,32 @@ def load(df):
         logger.warning("Пустой DataFrame — загрузка пропущена")
         return
 
-    logger.info(f"Загрузка {len(df)} строк в {TABLE_NAME}")
-
     with engine.begin() as conn:
-        copy_df(conn, df, TABLE_NAME)
+        for date in df["chart_date"].unique():
+            if day_exists(conn, date):
+                logger.info(f"{date} уже загружен")
+                continue
+
+            day_df = df[df["chart_date"] == date]
+            copy_df(conn, day_df, TABLE_NAME)
+            logger.info(f"Загрузка {len(day_df)} строк в {TABLE_NAME}")
+
         update_marts(conn)
 
     logger.info("Загрузка завершена")
+
+
+def day_exists(conn, chart_date):
+    sql = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM spotify_daily_charts
+            WHERE chart_date = %s
+        )
+    """
+    with conn.connection.cursor() as cur:
+        cur.execute(sql, (chart_date,))
+        return cur.fetchone()[0]
 
 
 def copy_df(conn, df, table):
